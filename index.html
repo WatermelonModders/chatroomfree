@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<!-- Created with https://packager.turbowarp.org/ -->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- We only include this to explicitly loosen the CSP of various packager environments. It does not provide any security. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src * 'self' 'unsafe-inline' 'unsafe-eval' data: blob:">
+  <title>Stormy&apos;s Message Room V1</title>
+  <style>
+    body {
+      color: #ffffff;
+      font-family: sans-serif;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+    }
+    :root, body.is-fullscreen {
+      background-color: #000000;
+    }
+    [hidden] {
+      display: none !important;
+    }
+    h1 {
+      font-weight: normal;
+    }
+    a {
+      color: inherit;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    #app, #loading, #error, #launch {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      cursor: default;
+      user-select: none;
+      -webkit-user-select: none;
+      background-color: #000000;
+    }
+    #launch {
+      background-color: rgba(0, 0, 0, 0.7);
+      cursor: pointer;
+    }
+    .green-flag {
+      width: 80px;
+      height: 80px;
+      padding: 16px;
+      border-radius: 100%;
+      background: rgba(255, 255, 255, 0.75);
+      border: 3px solid hsla(0, 100%, 100%, 1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-sizing: border-box;
+    }
+    #loading {
+      
+    }
+    .progress-bar-outer {
+      border: 1px solid currentColor;
+      height: 10px;
+      width: 200px;
+      max-width: 200px;
+    }
+    .progress-bar-inner {
+      height: 100%;
+      width: 0;
+      background-color: currentColor;
+    }
+    .loading-text, noscript {
+      font-weight: normal;
+      font-size: 36px;
+      margin: 0 0 16px;
+    }
+    .loading-image {
+      margin: 0 0 16px;
+    }
+    #error-message, #error-stack {
+      font-family: monospace;
+      max-width: 600px;
+      white-space: pre-wrap;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    #error-stack {
+      text-align: left;
+      max-height: 200px;
+      overflow: auto;
+    }
+    .control-button {
+      width: 2rem;
+      height: 2rem;
+      padding: 0.375rem;
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: pointer;
+      border: 0;
+      border-radius: 4px;
+    }
+    .control-button:hover {
+      background: #ff4c4c26;
+    }
+    .control-button.active {
+      background: #ff4c4c59;
+    }
+    .fullscreen-button {
+      background: white !important;
+    }
+    .standalone-fullscreen-button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      border-radius: 0 0 0 4px;
+      padding: 4px;
+      cursor: pointer;
+    }
+    .sc-canvas {
+      cursor: auto;
+    }
+    .sc-monitor-root[data-opcode^="data_"] .sc-monitor-value-color {
+      background-color: #ff8c1a;
+    }
+    .sc-monitor-row-value-outer {
+      background-color: #fc662c;
+    }
+    .sc-monitor-row-value-editing .sc-monitor-row-value-outer {
+      background-color: #e25b27;
+    }
+    
+  </style>
+  <meta name="theme-color" content="#000000">
+  
+</head>
+<body>
+  <div id="app"></div>
+
+  <div id="launch" class="screen" hidden title="Click to start">
+    <div class="green-flag">
+      <svg viewBox="0 0 16.63 17.5" width="42" height="44">
+        <defs><style>.cls-1,.cls-2{fill:#4cbf56;stroke:#45993d;stroke-linecap:round;stroke-linejoin:round;}.cls-2{stroke-width:1.5px;}</style></defs>
+        <path class="cls-1" d="M.75,2A6.44,6.44,0,0,1,8.44,2h0a6.44,6.44,0,0,0,7.69,0V12.4a6.44,6.44,0,0,1-7.69,0h0a6.44,6.44,0,0,0-7.69,0"/>
+        <line class="cls-2" x1="0.75" y1="16.75" x2="0.75" y2="0.75"/>
+      </svg>
+    </div>
+  </div>
+
+  <div id="loading" class="screen">
+    <noscript>Enable JavaScript</noscript>
+    
+    
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="loading-inner"></div></div>
+  </div>
+
+  <div id="error" class="screen" hidden>
+    <h1>Error</h1>
+    <details>
+      <summary id="error-message"></summary>
+      <p id="error-stack"></p>
+    </details>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    const appElement = document.getElementById('app');
+    const launchScreen = document.getElementById('launch');
+    const loadingScreen = document.getElementById('loading');
+    const loadingInner = document.getElementById('loading-inner');
+    const errorScreen = document.getElementById('error');
+    const errorScreenMessage = document.getElementById('error-message');
+    const errorScreenStack = document.getElementById('error-stack');
+
+    const handleError = (error) => {
+      console.error(error);
+      if (!errorScreen.hidden) return;
+      errorScreen.hidden = false;
+      errorScreenMessage.textContent = '' + error;
+      let debug = error && error.stack || 'no stack';
+      debug += '\nUser agent: ' + navigator.userAgent;
+      errorScreenStack.textContent = debug;
+    };
+    const setProgress = (progress) => {
+      if (loadingInner) loadingInner.style.width = progress * 100 + '%';
+    };
+    const interpolate = (a, b, t) => a + t * (b - a);
+
+    try {
+      setProgress(0.1);
+
+      const scaffolding = new Scaffolding.Scaffolding();
+      scaffolding.width = 800;
+      scaffolding.height = 600;
+      scaffolding.resizeMode = "preserve-ratio";
+      scaffolding.editableLists = false;
+      scaffolding.usePackagedRuntime = true;
+      scaffolding.setup();
+      scaffolding.appendTo(appElement);
+
+      const vm = scaffolding.vm;
+      window.scaffolding = scaffolding;
+      window.vm = scaffolding.vm;
+      window.Scratch = {
+        vm,
+        renderer: vm.renderer,
+        audioEngine: vm.runtime.audioEngine,
+        bitmapAdapter: vm.runtime.v2BitmapAdapter,
+        videoProvider: vm.runtime.ioDevices.video.provider
+      };
+
+      scaffolding.setUsername("player####".replace(/#/g, () => Math.floor(Math.random() * 10)));
+      scaffolding.setAccentColor("#ff4c4c");
+
+      scaffolding.addCloudProvider(new Scaffolding.Cloud.WebSocketProvider(["wss://clouddata.turbowarp.org","wss://clouddata.turbowarp.xyz"], "p4-@Stormy's Message Room V1.sb3"));
+
+      vm.setTurboMode(false);
+      if (vm.setInterpolation) vm.setInterpolation(false);
+      if (vm.setFramerate) vm.setFramerate(30);
+      if (vm.renderer.setUseHighQualityRender) vm.renderer.setUseHighQualityRender(false);
+      if (vm.setRuntimeOptions) vm.setRuntimeOptions({
+        fencing: true,
+        miscLimits: true,
+        maxClones: 300,
+      });
+      if (vm.setCompilerOptions) vm.setCompilerOptions({
+        enabled: true,
+        warpTimer: false
+      });
+      if (vm.renderer.setMaxTextureDimension) vm.renderer.setMaxTextureDimension(2048);
+
+      if (typeof ScaffoldingAddons !== 'undefined') {
+        ScaffoldingAddons.run(scaffolding, {"gamepad":false,"pointerlock":false,"specialCloudBehaviors":false,"unsafeCloudBehaviors":false,"pause":false});
+      }
+
+      scaffolding.setExtensionSecurityManager({
+        getSandboxMode: () => 'unsandboxed',
+        canLoadExtensionFromProject: () => true
+      });
+      for (const extension of ["data:text/javascript;,(function(Scratch)%20%7B%20%2F%2F%20Name%3A%20Runtime%20Options%0A%2F%2F%20ID%3A%20runtimeoptions%0A%2F%2F%20Description%3A%20Get%20and%20modify%20turbo%20mode%2C%20framerate%2C%20interpolation%2C%20clone%20limit%2C%20stage%20size%2C%20and%20more.%0A%0A(function%20(Scratch)%20%7B%0A%20%20%22use%20strict%22%3B%0A%0A%20%20if%20(!Scratch.extensions.unsandboxed)%20%7B%0A%20%20%20%20throw%20new%20Error(%22Runtime%20Options%20extension%20needs%20to%20be%20run%20unsandboxed%22)%3B%0A%20%20%7D%0A%0A%20%20const%20greenFlagURI%20%3D%0A%20%20%20%20%22data%3Aimage%2Fpng%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAMAAADXqc3KAAABFFBMVEUAAACAgABVqlVJkklAn0BNmTNLljxGlzpDmzdFmjpGmzxHmz9Fmj1FmT5Emj1GmT1GmD1EmDxGmTxEmT1GmjxGmT1FmDxEmT5EmTxGmT5FmD1GmT5FmT1Gmj1EmT5FmT1FmT1FmDxGmT1FmjxLs09LtE9Jr0xJsk1Js05JtVBKtU5KtVBKtlBJrkpJsE1KtlFIrEpIsExLt1FLuFJKuVNIqkhLulNIp0VJqkhKtlJLvVRMvFNFmT5GpUVFmT1HpEVHokNMvlVFmT1Ho0NFmTxLvlVGoUFMvlVLvlVGn0BFmT1Nv1ZEmz5FmTxFmTxFmT1NvlZFmz9FmT5FnT9FnD5GnT9Mv1ZMv1ZMv1ZFmT1Mv1b%2F%2F%2F%2F70P2GAAAAWXRSTlMAAgMHCAoRFhcwMz0%2FRkdQVGFmaWpxcnh7gIGEhZKZo6eprLq%2Fv8DAwMDAwMDBwcHCwsPDxcbIysrLzM3Pz9DQ1NTV1dfZ29vg4uXm5%2Bjp6ens7fDx9Pv8%2FnPb5aAAAAABYktHRFt0vJU0AAAAsUlEQVQoz2NgwA3YhNiwS4hHykoou9goCrKiSUhGhqhZe7gbm3rxQwQ4BJihEupRYODooMDFyMAu6uMsgyoRFW5kHxjkqeuhL4cmAQM4JXRwSWjjktDEJaGFS0IVIeFtZuIaAZdQgUmY2%2FoqyTu5WcEkNGAS%2FkJMQJrbySAAJBxmGSoIlYAoYGCR8rPVM7QItuNlQJVgYGDlE5MU5kSErhz2%2BKCihEikNHYJJh5mBhIAADBcR%2Fr5OJzCAAAAAElFTkSuQmCC%22%3B%0A%20%20const%20TURBO_MODE%20%3D%20%22turbo%20mode%22%3B%0A%20%20const%20INTERPOLATION%20%3D%20%22interpolation%22%3B%0A%20%20const%20REMOVE_FENCING%20%3D%20%22remove%20fencing%22%3B%0A%20%20const%20REMOVE_MISC_LIMITS%20%3D%20%22remove%20misc%20limits%22%3B%0A%20%20const%20HIGH_QUALITY_PEN%20%3D%20%22high%20quality%20pen%22%3B%0A%0A%20%20class%20RuntimeOptions%20%7B%0A%20%20%20%20getInfo()%20%7B%0A%20%20%20%20%20%20return%20%7B%0A%20%20%20%20%20%20%20%20id%3A%20%22runtimeoptions%22%2C%0A%20%20%20%20%20%20%20%20name%3A%20%22Runtime%20Options%22%2C%0A%20%20%20%20%20%20%20%20color1%3A%20%22%238c9abf%22%2C%0A%20%20%20%20%20%20%20%20color2%3A%20%22%237d8aab%22%2C%0A%20%20%20%20%20%20%20%20color3%3A%20%22%236f7b99%22%2C%0A%20%20%20%20%20%20%20%20blocks%3A%20%5B%0A%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20opcode%3A%20%22getEnabled%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22%5Bthing%5D%20enabled%3F%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20blockType%3A%20Scratch.BlockType.BOOLEAN%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20arguments%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20thing%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20type%3A%20Scratch.ArgumentType.STRING%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20defaultValue%3A%20TURBO_MODE%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20menu%3A%20%22thing%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20opcode%3A%20%22setEnabled%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22set%20%5Bthing%5D%20to%20%5Benabled%5D%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20blockType%3A%20Scratch.BlockType.COMMAND%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20arguments%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20thing%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20type%3A%20Scratch.ArgumentType.STRING%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20defaultValue%3A%20TURBO_MODE%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20menu%3A%20%22thing%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20enabled%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20type%3A%20Scratch.ArgumentType.STRING%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20defaultValue%3A%20%22true%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20menu%3A%20%22enabled%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%0A%20%20%20%20%20%20%20%20%20%20%22---%22%2C%0A%0A%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20opcode%3A%20%22getFramerate%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22framerate%20limit%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20blockType%3A%20Scratch.BlockType.REPORTER%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20opcode%3A%20%22setFramerate%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22set%20framerate%20limit%20to%20%5Bfps%5D%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20blockType%3A%20Scratch.BlockType.COMMAND%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20arguments%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20fps%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20type%3A%20Scratch.ArgumentType.NUMBER%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20defaultValue%3A%20%2230%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%0A%20%20%20%20%20%20%20%20%20%20%22---%22%2C%0A%0A%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20opcode%3A%20%22getCloneLimit%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22clone%20limit%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20blockType%3A%20Scratch.BlockType.REPORTER%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20opcode%3A%20%22setCloneLimit%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22set%20clone%20limit%20to%20%5Blimit%5D%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20blockType%3A%20Scratch.BlockType.COMMAND%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20arguments%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20limit%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20type%3A%20Scratch.ArgumentType.NUMBER%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20defaultValue%3A%20%22300%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20menu%3A%20%22clones%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%0A%20%20%20%20%20%20%20%20%20%20%22---%22%2C%0A%0A%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20opcode%3A%20%22getDimension%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22stage%20%5Bdimension%5D%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20blockType%3A%20Scratch.BlockType.REPORTER%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20arguments%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20dimension%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20type%3A%20Scratch.ArgumentType.STRING%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20defaultValue%3A%20%22width%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20menu%3A%20%22dimension%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20opcode%3A%20%22setDimensions%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22set%20stage%20size%20width%3A%20%5Bwidth%5D%20height%3A%20%5Bheight%5D%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20blockType%3A%20Scratch.BlockType.COMMAND%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20arguments%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20width%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20type%3A%20Scratch.ArgumentType.NUMBER%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20defaultValue%3A%20%22480%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20height%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20type%3A%20Scratch.ArgumentType.NUMBER%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20defaultValue%3A%20%22360%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%0A%20%20%20%20%20%20%20%20%20%20%22---%22%2C%0A%0A%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20opcode%3A%20%22setUsername%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22set%20username%20to%20%5Busername%5D%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20blockType%3A%20Scratch.BlockType.COMMAND%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20arguments%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20username%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20type%3A%20Scratch.ArgumentType.STRING%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20defaultValue%3A%20%22%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20opcode%3A%20%22greenFlag%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22run%20green%20flag%20%5Bflag%5D%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20blockType%3A%20Scratch.BlockType.COMMAND%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20arguments%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20flag%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20type%3A%20Scratch.ArgumentType.IMAGE%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20dataURI%3A%20greenFlagURI%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%5D%2C%0A%20%20%20%20%20%20%20%20menus%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20thing%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20acceptReporters%3A%20true%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20items%3A%20%5B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22turbo%20mode%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20value%3A%20TURBO_MODE%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22interpolation%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20value%3A%20INTERPOLATION%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22remove%20fencing%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20value%3A%20REMOVE_FENCING%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22remove%20misc%20limits%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20value%3A%20REMOVE_MISC_LIMITS%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22high%20quality%20pen%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20value%3A%20HIGH_QUALITY_PEN%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%5D%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%0A%20%20%20%20%20%20%20%20%20%20enabled%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20acceptReporters%3A%20true%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20items%3A%20%5B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22enabled%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20value%3A%20%22true%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22disabled%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20value%3A%20%22false%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%5D%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%0A%20%20%20%20%20%20%20%20%20%20clones%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20acceptReporters%3A%20true%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20items%3A%20%5B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22default%20(300)%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20value%3A%20%22300%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22Infinity%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20value%3A%20%22Infinity%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%5D%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%0A%20%20%20%20%20%20%20%20%20%20dimension%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20acceptReporters%3A%20true%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20items%3A%20%5B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22width%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20value%3A%20%22width%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22height%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20value%3A%20%22height%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%5D%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%7D%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20getEnabled(%7B%20thing%20%7D)%20%7B%0A%20%20%20%20%20%20if%20(thing%20%3D%3D%3D%20TURBO_MODE)%20%7B%0A%20%20%20%20%20%20%20%20return%20Scratch.vm.runtime.turboMode%3B%0A%20%20%20%20%20%20%7D%20else%20if%20(thing%20%3D%3D%3D%20INTERPOLATION)%20%7B%0A%20%20%20%20%20%20%20%20return%20Scratch.vm.runtime.interpolationEnabled%3B%0A%20%20%20%20%20%20%7D%20else%20if%20(thing%20%3D%3D%3D%20REMOVE_FENCING)%20%7B%0A%20%20%20%20%20%20%20%20return%20!Scratch.vm.runtime.runtimeOptions.fencing%3B%0A%20%20%20%20%20%20%7D%20else%20if%20(thing%20%3D%3D%3D%20REMOVE_MISC_LIMITS)%20%7B%0A%20%20%20%20%20%20%20%20return%20!Scratch.vm.runtime.runtimeOptions.miscLimits%3B%0A%20%20%20%20%20%20%7D%20else%20if%20(thing%20%3D%3D%3D%20HIGH_QUALITY_PEN)%20%7B%0A%20%20%20%20%20%20%20%20return%20Scratch.renderer.useHighQualityRender%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20return%20false%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20setEnabled(%7B%20thing%2C%20enabled%20%7D)%20%7B%0A%20%20%20%20%20%20enabled%20%3D%20Scratch.Cast.toBoolean(enabled)%3B%0A%0A%20%20%20%20%20%20if%20(thing%20%3D%3D%3D%20TURBO_MODE)%20%7B%0A%20%20%20%20%20%20%20%20Scratch.vm.setTurboMode(enabled)%3B%0A%20%20%20%20%20%20%7D%20else%20if%20(thing%20%3D%3D%3D%20INTERPOLATION)%20%7B%0A%20%20%20%20%20%20%20%20Scratch.vm.setInterpolation(enabled)%3B%0A%20%20%20%20%20%20%7D%20else%20if%20(thing%20%3D%3D%3D%20REMOVE_FENCING)%20%7B%0A%20%20%20%20%20%20%20%20Scratch.vm.setRuntimeOptions(%7B%0A%20%20%20%20%20%20%20%20%20%20fencing%3A%20!enabled%2C%0A%20%20%20%20%20%20%20%20%7D)%3B%0A%20%20%20%20%20%20%7D%20else%20if%20(thing%20%3D%3D%3D%20REMOVE_MISC_LIMITS)%20%7B%0A%20%20%20%20%20%20%20%20Scratch.vm.setRuntimeOptions(%7B%0A%20%20%20%20%20%20%20%20%20%20miscLimits%3A%20!enabled%2C%0A%20%20%20%20%20%20%20%20%7D)%3B%0A%20%20%20%20%20%20%7D%20else%20if%20(thing%20%3D%3D%3D%20HIGH_QUALITY_PEN)%20%7B%0A%20%20%20%20%20%20%20%20Scratch.renderer.setUseHighQualityRender(enabled)%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%7D%0A%0A%20%20%20%20getFramerate()%20%7B%0A%20%20%20%20%20%20return%20Scratch.vm.runtime.frameLoop.framerate%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20setFramerate(%7B%20fps%20%7D)%20%7B%0A%20%20%20%20%20%20fps%20%3D%20Scratch.Cast.toNumber(fps)%3B%0A%20%20%20%20%20%20Scratch.vm.setFramerate(fps)%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20getCloneLimit()%20%7B%0A%20%20%20%20%20%20return%20Scratch.vm.runtime.runtimeOptions.maxClones%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20setCloneLimit(%7B%20limit%20%7D)%20%7B%0A%20%20%20%20%20%20limit%20%3D%20Scratch.Cast.toNumber(limit)%3B%0A%20%20%20%20%20%20Scratch.vm.setRuntimeOptions(%7B%0A%20%20%20%20%20%20%20%20maxClones%3A%20limit%2C%0A%20%20%20%20%20%20%7D)%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20getDimension(%7B%20dimension%20%7D)%20%7B%0A%20%20%20%20%20%20if%20(dimension%20%3D%3D%3D%20%22width%22)%20%7B%0A%20%20%20%20%20%20%20%20return%20Scratch.vm.runtime.stageWidth%3B%0A%20%20%20%20%20%20%7D%20else%20if%20(dimension%20%3D%3D%3D%20%22height%22)%20%7B%0A%20%20%20%20%20%20%20%20return%20Scratch.vm.runtime.stageHeight%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20return%200%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20setDimensions(%7B%20width%2C%20height%20%7D)%20%7B%0A%20%20%20%20%20%20width%20%3D%20Scratch.Cast.toNumber(width)%3B%0A%20%20%20%20%20%20height%20%3D%20Scratch.Cast.toNumber(height)%3B%0A%20%20%20%20%20%20Scratch.vm.setStageSize(width%2C%20height)%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20setUsername(%7B%20username%20%7D)%20%7B%0A%20%20%20%20%20%20Scratch.vm.runtime.ioDevices.userData._username%20%3D%0A%20%20%20%20%20%20%20%20Scratch.Cast.toString(username)%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20greenFlag()%20%7B%0A%20%20%20%20%20%20Scratch.vm.runtime.greenFlag()%3B%0A%20%20%20%20%7D%0A%20%20%7D%0A%0A%20%20Scratch.extensions.register(new%20RuntimeOptions())%3B%0A%7D)(Scratch)%3B%0A%20%7D)(Scratch)%3B","data:text/javascript;,(function(Scratch)%20%7B%20%2F%2F%20Name%3A%20Numerical%20Encoding%0A%2F%2F%20ID%3A%20cs2627883NumericalEncoding%0A%2F%2F%20Description%3A%20Encode%20strings%20as%20numbers%20for%20cloud%20variables.%0A%2F%2F%20By%3A%20cs2627883%20%3Chttps%3A%2F%2Fscratch.mit.edu%2Fusers%2Fcs2627883%2F%3E%0A%0A%2F%2F%20https%3A%2F%2Fgithub.com%2FCS2627883%2FTurbowarp-Encoding-Extension%2Fblob%2Fmain%2FEncoding.js%0A%0A(function%20(Scratch)%20%7B%0A%20%20%22use%20strict%22%3B%0A%20%20class%20NumericalEncodingExtension%20%7B%0A%20%20%20%20maxcharlength%20%3D%206%3B%20%2F%2F%20There%20are%20149%2C186%20unicode%20characters%2C%20so%20the%20maximum%20character%20code%20length%20is%206%0A%20%20%20%20encoded%20%3D%200%3B%0A%20%20%20%20decoded%20%3D%200%3B%0A%20%20%20%20getInfo()%20%7B%0A%20%20%20%20%20%20return%20%7B%0A%20%20%20%20%20%20%20%20id%3A%20%22cs2627883NumericalEncoding%22%2C%0A%20%20%20%20%20%20%20%20name%3A%20%22Numerical%20Encoding%22%2C%0A%20%20%20%20%20%20%20%20blocks%3A%20%5B%0A%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20opcode%3A%20%22NumericalEncode%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20blockType%3A%20Scratch.BlockType.COMMAND%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22Encode%20%5BDATA%5D%20to%20numbers%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20arguments%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20DATA%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20type%3A%20Scratch.ArgumentType.STRING%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20defaultValue%3A%20%22Hello!%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20opcode%3A%20%22NumericalDecode%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20blockType%3A%20Scratch.BlockType.COMMAND%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22Decode%20%5BENCODED%5D%20back%20to%20text%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20arguments%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20ENCODED%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20type%3A%20Scratch.ArgumentType.STRING%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20defaultValue%3A%20%22000072000101000108000108000111000033%22%2C%20%2F%2FEncoded%20%22Hello!%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20opcode%3A%20%22GetNumericalEncoded%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20blockType%3A%20Scratch.BlockType.REPORTER%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22encoded%22%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20opcode%3A%20%22GetNumericalDecoded%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20blockType%3A%20Scratch.BlockType.REPORTER%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20text%3A%20%22decoded%22%2C%0A%20%20%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20%5D%2C%0A%20%20%20%20%20%20%7D%3B%0A%20%20%20%20%7D%0A%20%20%20%20NumericalEncode(args)%20%7B%0A%20%20%20%20%20%20const%20toencode%20%3D%20String(args.DATA)%3B%0A%20%20%20%20%20%20var%20encoded%20%3D%20%22%22%3B%0A%20%20%20%20%20%20for%20(let%20i%20%3D%200%3B%20i%20%3C%20toencode.length%3B%20%2B%2Bi)%20%7B%0A%20%20%20%20%20%20%20%20%2F%2F%20Get%20char%20code%20of%20character%0A%20%20%20%20%20%20%20%20var%20encodedchar%20%3D%20String(toencode.charCodeAt(i))%3B%0A%20%20%20%20%20%20%20%20%2F%2F%20Pad%20encodedchar%20with%200s%20to%20ensure%20all%20encodedchars%20are%20the%20same%20length%0A%20%20%20%20%20%20%20%20encodedchar%20%3D%0A%20%20%20%20%20%20%20%20%20%20%220%22.repeat(this.maxcharlength%20-%20encodedchar.length)%20%2B%20encodedchar%3B%0A%20%20%20%20%20%20%20%20encoded%20%2B%3D%20encodedchar%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20this.encoded%20%3D%20encoded%3B%0A%20%20%20%20%7D%0A%20%20%20%20NumericalDecode(args)%20%7B%0A%20%20%20%20%20%20const%20todecode%20%3D%20String(args.ENCODED)%3B%0A%20%20%20%20%20%20if%20(todecode%20%3D%3D%20%22%22)%20%7B%0A%20%20%20%20%20%20%20%20this.decoded%20%3D%20%22%22%3B%0A%20%20%20%20%20%20%20%20return%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20var%20decoded%20%3D%20%22%22%3B%0A%20%20%20%20%20%20%2F%2F%20Create%20regex%20to%20split%20by%20char%20length%0A%20%20%20%20%20%20const%20regex%20%3D%20new%20RegExp(%22.%7B1%2C%22%20%2B%20this.maxcharlength%20%2B%20%22%7D%22%2C%20%22g%22)%3B%0A%20%20%20%20%20%20%2F%2F%20Split%20into%20array%20of%20characters%0A%20%20%20%20%20%20var%20encodedchars%20%3D%20todecode.match(regex)%3B%0A%20%20%20%20%20%20for%20(let%20i%20%3D%200%3B%20i%20%3C%20encodedchars.length%3B%20i%2B%2B)%20%7B%0A%20%20%20%20%20%20%20%20%2F%2F%20Get%20character%20from%20char%20code%0A%20%20%20%20%20%20%20%20var%20decodedchar%20%3D%20String.fromCharCode(encodedchars%5Bi%5D)%3B%0A%20%20%20%20%20%20%20%20decoded%20%2B%3D%20decodedchar%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20this.decoded%20%3D%20decoded%3B%0A%20%20%20%20%7D%0A%20%20%20%20GetNumericalEncoded(args)%20%7B%0A%20%20%20%20%20%20return%20this.encoded%3B%0A%20%20%20%20%7D%0A%20%20%20%20GetNumericalDecoded(args)%20%7B%0A%20%20%20%20%20%20return%20this.decoded%3B%0A%20%20%20%20%7D%0A%20%20%7D%0A%0A%20%20%2F%2F%20Test%20Code%0A%20%20%2F*%0A%20%20encoding%20%3D%20new%20NumericalEncodingExtension()%3B%0A%20%20encodingNumericalEncode(%7B%22DATA%22%3A%20'Hello!'%7D)%3B%0A%20%20console.log(encoding.GetNumericalEncoded())%0A%20%20encoding.NumericalDecode(%7B%22ENCODED%22%3A%20encoding.GetNumericalEncoded()%7D)%3B%0A%20%20console.log(encoding.GetNumericalDecoded())%3B%0A%20%20*%2F%0A%0A%20%20Scratch.extensions.register(new%20NumericalEncodingExtension())%3B%0A%7D)(Scratch)%3B%0A%20%7D)(Scratch)%3B"]) {
+        vm.extensionManager.loadExtensionURL(extension);
+      }
+
+    } catch (e) {
+      handleError(e);
+    }
+  </script>
+  
+  
+    <script>
+      const getProjectData = (function() {
+        const storage = scaffolding.storage;
+        storage.onprogress = (total, loaded) => {
+          setProgress(interpolate(0.2, 0.98, loaded / total));
+        };
+        
+        storage.addWebStore(
+          [
+            storage.AssetType.ImageVector,
+            storage.AssetType.ImageBitmap,
+            storage.AssetType.Sound,
+            storage.AssetType.Font
+          ].filter(i => i),
+          (asset) => new URL('./assets/' + asset.assetId + '.' + asset.dataFormat, location).href
+        );
+        return () => new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.onload = () => {
+          resolve(xhr.response);
+        };
+        xhr.onerror = () => {
+          if (location.protocol === 'file:') {
+            reject(new Error('Zip environment must be used from a website, not from a file URL.'));
+          } else {
+            reject(new Error('Request to load project data failed.'));
+          }
+        };
+        xhr.onprogress = (e) => {
+          if (e.lengthComputable) {
+            setProgress(interpolate(0.1, 0.2, e.loaded / e.total));
+          }
+        };
+        xhr.responseType = 'arraybuffer';
+        xhr.open('GET', "./assets/project.json");
+        xhr.send();
+      });
+      })();
+    </script>
+  <script>
+    const run = async () => {
+      const projectData = await getProjectData();
+      await scaffolding.loadProject(projectData);
+      setProgress(1);
+      loadingScreen.hidden = true;
+      if (false) {
+        scaffolding.start();
+      } else {
+        launchScreen.hidden = false;
+        launchScreen.addEventListener('click', () => {
+          launchScreen.hidden = true;
+          scaffolding.start();
+        });
+        launchScreen.focus();
+      }
+    };
+    run().catch(handleError);
+  </script>
+</body>
+</html>
